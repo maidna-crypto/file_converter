@@ -1,0 +1,93 @@
+<form id="uploadForm" method="post" enctype="multipart/form-data" action="/api/upload/">
+    {% csrf_token %}
+    <label for="fileInput">Upload File:</label>
+    <input type="file" name="file" id="fileInput" required>
+
+    <label for="conversionType">Conversion Type:</label>
+    <select name="conversion_type" id="conversionType" required>
+        <option value="" disabled selected>Select conversion type</option>
+        <option value="pdf_to_docx">PDF to DOCX</option>
+        <option value="docx_to_pdf">DOCX to PDF</option>
+        <!-- Add more conversion types as needed -->
+    </select>
+
+    <button type="submit" id="uploadBtn">Upload</button>
+</form>
+<!-- Status message for conversion progress -->
+<div id="statusMessage" style="display:none;">
+    <p>Conversion in progress...</p>
+</div>
+
+<!-- Download button (initially hidden) -->
+<button id="downloadBtn" style="display:none;">Download Converted File</button>
+
+<!-- Add JavaScript to handle the dynamic behavior -->
+<script>
+    document.getElementById('uploadForm').addEventListener('submit', function(event) {
+    event.preventDefault(); // Prevent the form from submitting normally
+
+    const formData = new FormData(this);
+    const uploadBtn = document.getElementById('uploadBtn');
+    const statusMessage = document.getElementById('statusMessage');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    uploadBtn.disabled = true;  // Disable the button while uploading
+    statusMessage.style.display = 'block';  // Show the "in progress" message
+
+    fetch('/api/upload/', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.task_id) {
+            // Track the conversion task using the task ID
+            trackConversionStatus(data.task_id);
+        } else {
+            alert("Error: " + data.message);
+            uploadBtn.disabled = false;
+            statusMessage.style.display = 'none';
+        }
+    })
+    .catch(error => {
+        alert("Error uploading file: " + error);
+        uploadBtn.disabled = false;
+        statusMessage.style.display = 'none';
+    });
+});
+
+    // Function to track the conversion task status
+    function trackConversionStatus(taskId) {
+        const downloadBtn = document.getElementById('downloadBtn');
+        const statusMessage = document.getElementById('statusMessage');
+
+        // Check the task status every 5 seconds
+        const intervalId = setInterval(() => {
+            fetch(`/api/task-status/?task_id=${taskId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'COMPLETED') {
+                        // Conversion is complete, enable the download button
+                        clearInterval(intervalId);  // Stop polling
+                        downloadBtn.style.display = 'block';  // Show the download button
+
+                        // When the button is clicked, allow downloading the converted file
+                        downloadBtn.addEventListener('click', () => {
+                            window.location.href = `/media/converted/${data.file_name}`;  // Provide the download URL
+                        });
+
+                        statusMessage.style.display = 'none';  // Hide the "in progress" message
+                    } else if (data.status === 'FAILED') {
+                        // Task failed, handle accordingly
+                        clearInterval(intervalId);  // Stop polling
+                        alert('Conversion failed!');
+                        statusMessage.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking task status:', error);
+                });
+        }, 5000);  // Poll every 5 seconds
+    }
+
+</script>
