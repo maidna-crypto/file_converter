@@ -10,4 +10,8 @@ urlpatterns = [
     path('download/<str:file_name>/', download_file, name='download_file'),
     path('api/task-status/', TaskStatusView.as_view(), name='task-status')
 
-]  + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]  
+#+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

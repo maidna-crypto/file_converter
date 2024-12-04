@@ -1,93 +1,180 @@
-<form id="uploadForm" method="post" enctype="multipart/form-data" action="/api/upload/">
-    {% csrf_token %}
-    <label for="fileInput">Upload File:</label>
-    <input type="file" name="file" id="fileInput" required>
-
-    <label for="conversionType">Conversion Type:</label>
-    <select name="conversion_type" id="conversionType" required>
-        <option value="" disabled selected>Select conversion type</option>
-        <option value="pdf_to_docx">PDF to DOCX</option>
-        <option value="docx_to_pdf">DOCX to PDF</option>
-        <!-- Add more conversion types as needed -->
-    </select>
-
-    <button type="submit" id="uploadBtn">Upload</button>
-</form>
-<!-- Status message for conversion progress -->
-<div id="statusMessage" style="display:none;">
-    <p>Conversion in progress...</p>
-</div>
-
-<!-- Download button (initially hidden) -->
-<button id="downloadBtn" style="display:none;">Download Converted File</button>
-
-<!-- Add JavaScript to handle the dynamic behavior -->
-<script>
-    document.getElementById('uploadForm').addEventListener('submit', function(event) {
-    event.preventDefault(); // Prevent the form from submitting normally
-
-    const formData = new FormData(this);
-    const uploadBtn = document.getElementById('uploadBtn');
-    const statusMessage = document.getElementById('statusMessage');
-    const downloadBtn = document.getElementById('downloadBtn');
-
-    uploadBtn.disabled = true;  // Disable the button while uploading
-    statusMessage.style.display = 'block';  // Show the "in progress" message
-
-    fetch('/api/upload/', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.task_id) {
-            // Track the conversion task using the task ID
-            trackConversionStatus(data.task_id);
-        } else {
-            alert("Error: " + data.message);
-            uploadBtn.disabled = false;
-            statusMessage.style.display = 'none';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload & Conversion</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
         }
-    })
-    .catch(error => {
-        alert("Error uploading file: " + error);
-        uploadBtn.disabled = false;
-        statusMessage.style.display = 'none';
-    });
-});
 
-    // Function to track the conversion task status
-    function trackConversionStatus(taskId) {
-        const downloadBtn = document.getElementById('downloadBtn');
-        const statusMessage = document.getElementById('statusMessage');
+        .container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+        }
 
-        // Check the task status every 5 seconds
-        const intervalId = setInterval(() => {
-            fetch(`/api/task-status/?task_id=${taskId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'COMPLETED') {
-                        // Conversion is complete, enable the download button
-                        clearInterval(intervalId);  // Stop polling
-                        downloadBtn.style.display = 'block';  // Show the download button
+        h1 {
+            text-align: center;
+            color: #333;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
 
-                        // When the button is clicked, allow downloading the converted file
-                        downloadBtn.addEventListener('click', () => {
-                            window.location.href = `/media/converted/${data.file_name}`;  // Provide the download URL
-                        });
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #555;
+        }
 
-                        statusMessage.style.display = 'none';  // Hide the "in progress" message
-                    } else if (data.status === 'FAILED') {
-                        // Task failed, handle accordingly
-                        clearInterval(intervalId);  // Stop polling
-                        alert('Conversion failed!');
-                        statusMessage.style.display = 'none';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error checking task status:', error);
-                });
-        }, 5000);  // Poll every 5 seconds
-    }
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
 
-</script>
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:disabled {
+            background-color: #9e9e9e;
+            cursor: not-allowed;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #statusMessage {
+            text-align: center;
+            font-size: 1rem;
+            color: #555;
+            margin-top: 15px;
+        }
+
+        #downloadBtn {
+            background-color: #007BFF;
+            display: none;
+        }
+
+        #downloadBtn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Upload & Convert File</h1>
+        <form id="uploadForm" method="post" enctype="multipart/form-data" action="/api/upload/">
+            {% csrf_token %}
+            <label for="fileInput"><i class="fas fa-file-upload"></i> Choose a File</label>
+            <input type="file" name="file" id="fileInput" required>
+
+            <label for="conversionType"><i class="fas fa-exchange-alt"></i> Select Conversion Type</label>
+            <select name="conversion_type" id="conversionType" required>
+                <option value="" disabled selected>Select conversion type</option>
+                <option value="pdf_to_docx">PDF to DOCX</option>
+                <option value="docx_to_pdf">DOCX to PDF</option>
+                <!-- Add more conversion types as needed -->
+            </select>
+
+            <button type="submit" id="uploadBtn"><i class="fas fa-upload"></i> Upload</button>
+        </form>
+
+        <!-- Status message for conversion progress -->
+        <div id="statusMessage" style="display:none;">
+            <p>Conversion in progress... <i class="fas fa-spinner fa-spin"></i></p>
+        </div>
+
+        <!-- Download button (initially hidden) -->
+        <button id="downloadBtn"><i class="fas fa-download"></i> Download Converted File</button>
+    </div>
+
+    <!-- Add JavaScript to handle the dynamic behavior -->
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent the form from submitting normally
+
+            const formData = new FormData(this);
+            const uploadBtn = document.getElementById('uploadBtn');
+            const statusMessage = document.getElementById('statusMessage');
+            const downloadBtn = document.getElementById('downloadBtn');
+
+            uploadBtn.disabled = true;  // Disable the button while uploading
+            statusMessage.style.display = 'block';  // Show the "in progress" message
+
+            fetch('/api/upload/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.task_id) {
+                    trackConversionStatus(data.task_id);
+                } else {
+                    alert("Error: " + data.message);
+                    uploadBtn.disabled = false;
+                    statusMessage.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                alert("Error uploading file: " + error);
+                uploadBtn.disabled = false;
+                statusMessage.style.display = 'none';
+            });
+        });
+
+        function trackConversionStatus(taskId) {
+            const downloadBtn = document.getElementById('downloadBtn');
+            const statusMessage = document.getElementById('statusMessage');
+
+            const intervalId = setInterval(() => {
+                fetch(`/api/task-status/?task_id=${taskId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'COMPLETED') {
+                            clearInterval(intervalId);
+                            downloadBtn.style.display = 'block';
+                            downloadBtn.addEventListener('click', () => {
+                                window.location.href = `/media/converted/${data.file_name}`;
+                            });
+                            statusMessage.style.display = 'none';
+                        } else if (data.status === 'FAILED') {
+                            clearInterval(intervalId);
+                            alert('Conversion failed!');
+                            statusMessage.style.display = 'none';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error checking task status:', error);
+                    });
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
+
+
+{% load static %}
+<script src="{% static 'upload.js' %}"></script>

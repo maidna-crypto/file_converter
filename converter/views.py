@@ -23,12 +23,6 @@ def upload_form(request):
     return render(request, 'converter/upload_form.html')
 
 
-# def download_file(request, file_name):
-#     file_path = os.path.join(settings.MEDIA_ROOT, 'converted', file_name)  # Adjust this path as per your file storage
-#     if os.path.exists(file_path):
-#         return FileResponse(open(file_path, 'rb'), content_type='application/octet-stream')
-#     return Response({'message': 'File not found'}, status=status.HTTP_404_NOT_FOUND)
-
 def download_file(request, file_name):
     try:
         file_path = os.path.join(settings.MEDIA_ROOT, 'converted', file_name)
@@ -56,6 +50,7 @@ class FileUploadView(APIView):
         if serializer.is_valid():
             file_obj = serializer.save()
             # Trigger Celery task for conversion
+            #task = convert_file_task_api.delay(file_obj.id, serializer.validated_data['conversion_type'])
             task = convert_file_task.delay(file_obj.id, serializer.validated_data['conversion_type'])
             return Response({'message': 'File uploaded successfully and queued for conversion',
                               'task_id': task.id,}, status=status.HTTP_202_ACCEPTED)
@@ -106,9 +101,23 @@ class TaskStatusView(APIView):
         if task_result.state == 'SUCCESS':
             return Response({
                 'status': 'COMPLETED',
-                'file_name': task_result.result  # This should be the file name for download
-            })
+                'file_name': task_result.result  
+            }, status=status.HTTP_200_OK)
+        
         elif task_result.state == 'PENDING':
-            return Response({'status': 'PENDING'}, status=status.HTTP_202_ACCEPTED)
+            return Response({
+                'status': 'PENDING',
+                'message': 'Task is waiting or in progress'
+            }, status=status.HTTP_202_ACCEPTED)
+        
+        elif task_result.state == 'STARTED':
+            return Response({
+                'status': 'PROCESSING',
+                'message': 'Task is in progress'
+            }, status=status.HTTP_202_ACCEPTED)
+        
         else:
-            return Response({'status': 'FAILED'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({
+                'status': 'FAILED',
+                'message': 'Task failed or encountered an error'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
