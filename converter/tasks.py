@@ -144,8 +144,6 @@ def convert_file_task(file_upload_id, conversion_type=None):
         output_dir.mkdir(parents=True, exist_ok=True)
         print("output_dir", output_dir)
 
-        # Define the output file based on conversion type
-        #output_file = output_dir / f"converted_{input_path.stem}"
         output_file = output_dir / generate_unique_filename(input_path.stem, '.pdf')
 
 
@@ -157,12 +155,10 @@ def convert_file_task(file_upload_id, conversion_type=None):
             convert_docx_to_pdf(input_file, output_file)
         else:
             logger.info(f"No specific conversion type provided. Default mock conversion used.")
-            # If no valid conversion type is specified, just copy the file
             output_file = output_file.with_suffix(input_path.suffix)
             with open(input_file, 'rb') as f_in, open(output_file, 'wb') as f_out:
                 f_out.write(f_in.read())
 
-        # Mark as completed and save the converted file path
         relative_output_path = str(output_file).replace(str(Path(settings.MEDIA_ROOT)) + '/', '')
         file_upload.converted_file.name = relative_output_path
         file_upload.status = 'COMPLETED'

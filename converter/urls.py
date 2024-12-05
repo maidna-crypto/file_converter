@@ -3,6 +3,7 @@ from .views import FileUploadView, FileDownloadView, upload_form, download_file,
 from django.conf import settings
 from django.conf.urls.static import static
 
+
 urlpatterns = [
     path('upload/', upload_form, name='upload_form'),
     path('api/upload/', FileUploadView.as_view(), name='file-upload'),

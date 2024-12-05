@@ -3,6 +3,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from celery.result import AsyncResult
 
+
 class FileUploadConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         print("WebSocket connection established")

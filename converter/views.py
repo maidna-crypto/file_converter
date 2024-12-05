@@ -41,6 +41,7 @@ def download_file(request, file_name):
         raise Http404(f"Error: {str(e)}")
 
 
+
 @method_decorator(csrf_exempt, name='dispatch')
 class FileUploadView(APIView):
     parser_classes = (MultiPartParser, FormParser)

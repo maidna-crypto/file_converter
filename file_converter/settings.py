@@ -142,12 +142,14 @@ CSRF_TRUSTED_ORIGINS = ['http://localhost:3000', 'http://localhost:8000']
 CORS_ALLOW_CREDENTIALS = True
 
 
+
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATIC_URL = '/static/'
 
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'), 
 ]
+
 
 ASGI_APPLICATION = 'file_converter.asgi.application'
 
